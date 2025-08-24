@@ -156,10 +156,10 @@ Indicadores: involuntário %, HE média/mês, absenteísmo, PIPs concluídos.
 ## 📈 Estatísticas Descritivas (KPIs em %)
 | KPI | mean | median | std | cv |
 |:---|:---:|:---:|:---:|:---:|
-| Turnover (rotatividade) | 5.79 | 5.97 | 1.26 | 0.22 |
-| Taxa de desligamento | 5.34 | 5.12 | 1.92 | 0.36 |
-| Voluntário | 2.65 | 2.51 | 0.97 | 0.36 |
-| Involuntário | 2.69 | 2.63 | 1.10 | 0.41 |
+| Turnover (rotatividade) | 3.91 | 3.93 | 0.76 | 0.19 |
+| Taxa de desligamento | 3.98 | 4.09 | 1.01 | 0.25 |
+| Voluntário | 1.78 | 1.69 | 0.62 | 0.35 |
+| Involuntário | 2.20 | 2.10 | 0.79 | 0.36 |
 
 > **Média** (valor médio), **Mediana** (valor central), **Desvio Padrão** (dispersão) e **CV** (*Coeficiente de Variação* = Desvio Padrão ÷ Média; quanto menor, mais estável).
 
@@ -195,16 +195,6 @@ from sklearn.metrics import average_precision_score, roc_auc_score, brier_score_
 # 6) Explicabilidade: SHAP (global/local)
 # 7) Seleção de limiar: capacidade do RH (top-K)
 # 8) Monitoração: drift, recalibração, retrain
-```
-
-
-## 🎞️ Apresentação (PPT)
-
-Gere a apresentação com os gráficos já prontos:
-```bash
-pip install python-pptx
-python scripts/create_ppt.py
-# Saída: output/case_turnover_apresentacao.pptx
 ```
 
 ## ✅ Testes rápidos (pytest)
