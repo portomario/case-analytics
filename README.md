@@ -2,7 +2,7 @@
 Autor: Mario L. O. Porto — Coordenador de People Analytics (case técnico)
 
 Este repositório contém o material do case com **código Python testável**, **gráficos** e **relatórios**.  
-Turnover calculado por: `[(Admissões + Desligamentos)/2] / Total * 100` (rotatividade) e **taxa de desligamento** separada (desligamentos / HC médio).
+Turnover calculado por: `[(Admissões + Desligamentos)/2] / Total HC * 100` (rotatividade) e **taxa de desligamento** separada (desligamentos / HC médio).
 
 ## Visão Geral
 
@@ -100,33 +100,104 @@ Padronização: atualizar políticas (mobilidade, bandas), OKRs e PIPs para caso
 
 Objetivo: estimar probabilidade de pedido de demissão em 90 dias (janela deslizante), priorizando ações de retenção.
 
-### 3.1 Dados & Features (exemplos)
+### 3.1 Objetivo e Escopo (linguagem simples)
+O que prever: quem tem maior chance de pedir demissão voluntária.
 
-Demográficos/contratuais: área, cargo/família, unidade, regime de trabalho, tenure (dias).
-Remuneração: salário base, compa-ratio, variações recentes, PLR elegibilidade.
-Jornada: horas extras, escala/turno, ponto (absenteísmo, extrapolações).
-Carreira: mobilidade interna, promoções/rebaixamentos, treinamento.
-Clima/engajamento: eNPS, pesquisas pulse, participação em rituais.
-Histórico de gestão: span of control, rotatividade do gestor, sucessões.
-Sazonais/temporais: mês, sazonalidade local.
-Tratamento: reference date mensal; target = “pedido de demissão nos próximos 90 dias”; split temporal (treino < validação < teste).
+•	Janela: nos próximos 90 dias após cada referência mensal.
 
-### 3.2 Modelagem
+•	Unidade de análise: pessoa-mês (um score por colaborador por mês).
 
-Modelos base: Regressão Logística (baseline interpretável) e Gradient Boosting (XGBoost/LightGBM).
-Métricas: PR AUC (caso raro), precisão@k, calibration (Brier) e fairness por grupo (área/unidade).
-Explicabilidade: SHAP para feature importance global e local (nível pessoa).
+•	População: empregados ativos; excluímos quem acabou de entrar (ex.: <30 dias) para evitar ruído.
 
-### 3.3 Pipeline (pseudocódigo Python)
+•	Frequência: mensal (após o fechamento do mês).
 
-Ver scripts/analyze.py para preparação de série e tests/test_metrics.py para validações. O pipeline preditivo seria:
+Por que assim? Alinha previsão com ciclos de RH e permite ações práticas (conversas, retenção, mobilidade).
 
-1) Extrair janela de referência mensal e montar target 90 dias
-2) Engineer features (tenure, compa-ratio, horas extras, eNPS etc.)
-3) Split por tempo (train/valid/test)
-4) Treinar baseline (LogReg) + GBM
-5) Avaliar por PR AUC, precision@k, calibration; fairness por área
-6) Explicar com SHAP e gerar top fatores por colaborador
+### 3.2 Dados e Features (o que entra no modelo)
+
+•	Demografia/contrato: área, cargo, unidade, turno, modo (presencial/remoto), tenure (tempo de casa).
+
+•	Remuneração: salário, compa-ratio (salário vs. faixa), promoções/reajustes, PLR.
+
+•	Jornada/absenteísmo: horas extras, faltas/atrasos.
+
+•	Carreira: promoções, movimentações internas, cursos.
+
+•	Clima/engajamento: eNPS, pesquisas pulse.
+
+•	Desempenho: rating, PIP.
+
+•	Time/gestão: gestor, churn do time (saídas recentes do mesmo time).
+
+•	Sazonalidade/tempo: mês, trimestre, dummies sazonais.
+
+> Regras de ouro de dados:
+•	Sem vazamento de informação (data leakage): só usar o que existia na data de referência.
+•	Balanceamento de classes: saídas voluntárias são raras → usar class weights ou amostragens controladas.
+
+### 3.3 Modelagem e porquês
+
+•	Modelos escolhidos:
+
+o	Regressão Logística (baseline interpretável).
+
+o	Gradient Boosting (ex.: scikit-learn; em produção, LightGBM/XGBoost) para não linearidades.
+
+•	Divisão temporal (sem embaralhar o tempo): treino (mais antigo) → validação (recente) → teste final (período mais novo).
+
+Por quê? Simula a vida real: treinar no passado para prever o futuro.
+
+•	Pré-processamento: categóricas com One-Hot, numéricas padronizadas (para Logística).
+
+•	Métricas (para evento raro):
+
+o	Precisão (Precision): entre os marcados como risco, quantos realmente saem?
+Precision = TP / (TP + FP)
+
+o	Cobertura/Revocação (Recall): entre os que saem, quantos o modelo pegou?
+Recall = TP / (TP + FN)
+
+o	F1: equilíbrio entre precisão e recall.
+F1 = 2 * (P*R) / (P + R)
+
+o	PR AUC: área da curva Precisão–Recall (boa quando o evento é raro).
+
+o	ROC AUC: capacidade geral de separação.
+
+o	Brier Score (calibração): média de (probabilidade − real)² — se diz 30%, em média 30 de 100 devem sair.
+
+o	Precision@K: precisão no topo da lista (ex.: top 5%), que é onde o RH atua.
+
+•	Explicabilidade: SHAP para mostrar quais variáveis puxam o risco de cada pessoa para cima/baixo.
+
+•	Justiça (fairness): comparar métricas por área/unidade para checar viés; ajustar limiar por grupo se necessário.
+
+•	Seleção de limiar (threshold):
+
+o	best F1: melhor equilíbrio P/R (bom geral).
+
+o	top-K (ex.: 5%): alinha com capacidade de intervenção do RH (tratar só o topo).
+
+•	Monitoração: drift, queda de calibração, retrain periódico.
+
+### 3.4 Falsos Positivos (FP) — como medimos e reportamos
+
+•	O que é FP? Caso marcado como “risco” que não sai.
+
+•	Por que importa? Aumenta trabalho do RH e pode gerar alarme falso.
+
+•	Como avaliamos:
+
+o	Geramos matriz de confusão (TP, FP, TN, FN) no limiar escolhido.
+
+o	Relatório XML estilo JUnit para integração/inspeção rápida.
+
+o	Duas estratégias de corte:
+
+1.	best F1 (melhor equilíbrio),
+2.	top-K (ex.: 5% mais altos).
+   
+o	Estatísticas dos scores (geral e dos “positivos previstos”): média, mediana, desvio, CV.
 
 ## Pilar 4 — Plano de Ação (Executivo)
 
@@ -141,8 +212,6 @@ Indicadores: voluntário %, eNPS, taxa 0–90 dias, tempo de reposição.
 Ações: (1) Balanceamento de escala e limites de HE; (2) Treinamento de liderança e runbook de performance; (3) Workforce planning por turno.
 Meta: reduzir involuntário em 0,4 pp; manter qualidade (absenteísmo estável).
 Indicadores: involuntário %, HE média/mês, absenteísmo, PIPs concluídos.
-
-
 
 ## 📊 Gráficos (principais)
 ![Taxa de desligamento](output/taxa_desligamento.png)
