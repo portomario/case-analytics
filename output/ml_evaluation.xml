@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ML_Evaluation" tests="3" failures="0">
+  <testcase classname="ml.eval" name="precision">
+    <system-out>1.000000</system-out>
+  </testcase>
+  <testcase classname="ml.eval" name="recall">
+    <system-out>1.000000</system-out>
+  </testcase>
+  <testcase classname="ml.eval" name="f1">
+    <system-out>1.000000</system-out>
+  </testcase>
+  <system-out><![CDATA[
+Threshold usado: best_f1=0.5
+TP=54.0 FP=0.0 TN=246.0 FN=0.0
+Precision=1.0000  Recall=1.0000  F1=1.0000
+SCORES — ALL: mean=0.3598, median=0.3201, std=0.2544, cv=0.7070
+SCORES — PRED_POS: mean=0.8127, median=0.8353, std=0.1171, cv=0.1441
+
+  ]]></system-out>
+</testsuite>

@@ -1,2 +1,0 @@
-A geração do PPT requer a biblioteca 'python-pptx'. Instale com: pip install python-pptx
-Depois rode: python scripts\create_ppt.py

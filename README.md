@@ -1,68 +1,73 @@
 # Case Técnico — Coordenador de People Analytics
 
-Este pacote contém **código Python testável**, **gráficos**, **relatório** e **apresentação (PPTX)** para o case de turnover.
+Este repositório contém o material do case com **código Python testável**, **gráficos** e **relatórios**.  
+Turnover calculado por: `[(Admissões + Desligamentos)/2] / Total * 100` (rotatividade) e **taxa de desligamento** separada (desligamentos / HC médio).
 
-## Estrutura
+## 📊 Gráficos (principais)
+![Taxa de desligamento](output/taxa_desligamento.png)
+![Turnover (rotatividade)](output/turnover_rotatividade.png)
+![Turnover voluntário](output/turnover_voluntario.png)
+![Turnover involuntário](output/turnover_involuntario.png)
+![Sazonalidade (desligamento)](output/seasonality_desligamento.png)
+![Tendência MM3 — desligamento](output/desligamento_ma3.png)
+![Tendência MM3 — turnover](output/turnover_ma3.png)
 
+## 📈 Estatísticas Descritivas (KPIs em %)
+| KPI | mean | median | std | cv |
+|:---|:---:|:---:|:---:|:---:|
+| Turnover (rotatividade) | 5.79 | 5.97 | 1.26 | 0.22 |
+| Taxa de desligamento | 5.34 | 5.12 | 1.92 | 0.36 |
+| Voluntário | 2.65 | 2.51 | 0.97 | 0.36 |
+| Involuntário | 2.69 | 2.63 | 1.10 | 0.41 |
+
+> **Média** (valor médio), **Mediana** (valor central), **Desvio Padrão** (dispersão) e **CV** (*Coeficiente de Variação* = Desvio Padrão ÷ Média; quanto menor, mais estável).
+
+## 🔎 Análise de Falsos Positivos (XML + Estatísticas)
+Gera **XML estilo JUnit** e estatísticas de **scores** (média, mediana, desvio, CV) no *threshold* escolhido:
+```bash
+python scripts/fp_report.py --preds data/predictions_sample.csv --outdir output --strategy best_f1
+# Artefatos:
+# - output/ml_evaluation.xml
+# - output/confusion_matrix.csv
+# - output/metrics_by_threshold.csv
+# - output/metrics_summary.json
+# - output/fp_stats.csv
 ```
-people-analytics-case/
-├─ README.md
-├─ requirements.txt
-├─ data/
-│  └─ turnover_monthly.csv
-├─ scripts/
-│  ├─ analyze.py
-│  ├─ create_ppt.py
-│  └─ generate_all.py
-├─ docs/
-│  ├─ report.md
-│  ├─ deck_outline.md
-│  └─ glossary.md
-├─ tests/
-│  └─ test_metrics.py
-├─ tools/
-│  └─ init_repo.ps1
-└─ output/  (gerado pelos scripts)
+
+## 🧠 Esqueleto do Pipeline (Python)
+```python
+from pathlib import Path
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import average_precision_score, roc_auc_score, brier_score_loss
+
+# 1) Snapshot pessoa-mês e label 90d (voluntário)
+# 2) Split temporal (train/valid/test)
+# 3) Pré-processamento (imputação, OneHot, padronização)
+# 4) Modelos: LogReg (baseline) e GBDT (não linear)
+# 5) Métricas: PR AUC, ROC AUC, Brier, Precision@K
+# 6) Explicabilidade: SHAP (global/local)
+# 7) Seleção de limiar: capacidade do RH (top-K)
+# 8) Monitoração: drift, recalibração, retrain
 ```
 
-## Como rodar localmente
 
-```powershell
-python -m venv .venv
-. .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+## 🎞️ Apresentação (PPT)
 
-# Gera métricas, tabelas (Excel), PNGs e PPTX (se python-pptx estiver instalado)
-python scripts\generate_all.py
+Gere a apresentação com os gráficos já prontos:
+```bash
+pip install python-pptx
+python scripts/create_ppt.py
+# Saída: output/case_turnover_apresentacao.pptx
+```
 
-# Executa os testes automatizados
+## ✅ Testes rápidos (pytest)
+```bash
+pip install pytest
 pytest -q
 ```
-
-- Os arquivos gerados ficam em `output/`, incluindo `people-analytics-turnover.xlsx`, gráficos PNG e `case_turnover_apresentacao.pptx`.
-
-## Subir no GitHub (via PowerShell)
-
-1. Crie um repositório **vazio** (sem README) no GitHub, por exemplo: `people-analytics-case`.
-2. No PowerShell, rode:
-
-```powershell
-git init
-git add .
-git commit -m "Case técnico: análise de turnover com código, testes e roteiro"
-git branch -M main
-git remote add origin https://github.com/<seu-usuario>/people-analytics-case.git
-git push -u origin main
-```
-
-> Dica: você também pode usar o script `tools\init_repo.ps1` e editar as variáveis de usuário/repos.
-
-## Decisões de Métrica (resumo)
-
-- **Turnover (rotatividade)**: `[(Admissões + Desligamentos) / 2] / Headcount total`. Escolhemos este como o **turnover ampliado**, pois captura a **pressão de movimentação** média no período usando o total do mês como base.  
-- **Taxa de desligamento**: `Desligamentos / Headcount médio`. Mantemos **separado** para comparabilidade com benchmarks que chamam esta métrica de “turnover”.  
-- **Voluntário** e **Involuntário**: taxas por `HC médio`, permitindo entender composição do churn.
-- **Média móvel de 3 meses**: leitura de tendência para uma série curta (24 meses).
-- **Anomalias (z-score |z|≥2)**: destacar meses atípicos para *deep dive*.
-
-Detalhes completos em `docs/report.md` e `docs/deck_outline.md`.

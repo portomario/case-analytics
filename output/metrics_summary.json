@@ -1,0 +1,11 @@
+{
+  "strategy": "best_f1",
+  "threshold": 0.5,
+  "tp": 54.0,
+  "fp": 0.0,
+  "tn": 246.0,
+  "fn": 0.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0
+}
