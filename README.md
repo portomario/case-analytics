@@ -22,7 +22,7 @@ Racional: métrica clássica para comparar saídas entre áreas/empresas. Em mui
 
 Headcount médio do mês = média de Total_{t-1} e Total_t (no primeiro mês, usa-se Total_t).
 
-Também abrimos a composição:
+Composição da análise:
 
 Voluntário = Desligamentos voluntários / HC médio × 100
 Involuntário = Desligamentos involuntários / HC médio × 100
@@ -188,7 +188,7 @@ o	top-K (ex.: 5%): alinha com capacidade de intervenção do RH (tratar só o to
 
 •	Como avaliamos:
 
-o	Geramos matriz de confusão (TP, FP, TN, FN) no limiar escolhido.
+o	Gerei a matriz de confusão (TP, FP, TN, FN) no limiar escolhido.
 
 o	Relatório XML estilo JUnit para integração/inspeção rápida.
 
